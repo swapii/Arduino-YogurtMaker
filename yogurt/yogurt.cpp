@@ -27,6 +27,8 @@ boolean isRelayOn;
 float targetTemp;
 
 
+void saveTemp() ;
+
 void setup(void) {
   
   while (!EEPROM.isReady()) {
