@@ -10,3 +10,6 @@
 [submodule "libs/OneWire"]
 	path = libs/OneWire
 	url = git@github.com:PaulStoffregen/OneWire.git
+[submodule "libs/LiquidCrystal"]
+	path = libs/LiquidCrystal
+	url = git@github.com:swapii/ArduinoLib_NewLiquidCrystal.git

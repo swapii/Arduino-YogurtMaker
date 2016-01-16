@@ -1,6 +1,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <EEPROMex.h>
 #include <Bounce2.h>
 
@@ -19,7 +20,16 @@ OneWire tempWire(TEMP_SENSOR);
 
 DallasTemperature sensors(&tempWire);
 
-LiquidCrystal display(10, 9, 8, 7, 6, 5, 4);
+#define BACKLIGHT_PIN  7
+#define En_pin  4
+#define Rw_pin  5
+#define Rs_pin  6
+#define D4_pin  0
+#define D5_pin  1
+#define D6_pin  2
+#define D7_pin  3
+LiquidCrystal_I2C lcd(0x20, En_pin, Rw_pin, Rs_pin, D4_pin, D5_pin, D6_pin, D7_pin);
+
 
 Bounce plusBouncer = Bounce();
 Bounce minusBouncer = Bounce();
@@ -30,9 +40,27 @@ float targetTemp;
 
 void saveTemp() ;
 
+int counter;
 
 void setup(void) {
-  
+
+    // Switch on the backlight
+//    pinMode ( BACKLIGHT_PIN, OUTPUT );
+//    digitalWrite ( BACKLIGHT_PIN, HIGH );
+//
+//    lcd.setBacklightPin(BACKLIGHT_PIN,NEGATIVE);
+
+    lcd.begin(16, 2);
+    lcd.home();                   // go home
+    lcd.print("Hello, ARDUINO ");
+    lcd.setCursor ( 0, 1 );        // go to the next line
+    lcd.print (" WORLD!  ");
+
+    delay(1000);
+    lcd.setBacklight(0);
+    delay(1000);
+    lcd.setBacklight(1);
+
 //  while (!EEPROM.isReady()) {
 //    delay(50);
 //  }
@@ -68,6 +96,14 @@ void setup(void) {
 
 
 void loop(void) {
+
+    counter++;
+
+    delay(1000);
+
+    lcd.home();
+    lcd.clear();
+    lcd.print(counter);
 
 //  sensors.setWaitForConversion(false);  // makes it async
 //  sensors.requestTemperatures();
