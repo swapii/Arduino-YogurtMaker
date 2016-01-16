@@ -2,47 +2,42 @@
 #include <DallasTemperature.h>
 #include <LiquidCrystal.h>
 #include <LiquidCrystal_I2C.h>
+#include <AnalogButtons.h>
 //#include <EEPROMex.h>
-//#include <Bounce2.h>
-
-
-//#define RELAY_OUT 12
-//#define LED_OUT 13
-//
-//#define PLUS_IN 3
-//#define MINUS_IN 2
-
 
 
 #define TEMP_SENSOR_PIN 7
-#define TEMP_ADDR 0
+#define LCD_BACKLIGHT_PIN  7
+#define LCD_EN_PIN  4
+#define LCD_RW_PIN  5
+#define LCD_RS_PIN  6
+#define LCD_D4_PIN  0
+#define LCD_D5_PIN  1
+#define LCD_D6_PIN  2
+#define LCD_D7_PIN  3
+#define BUTTONS_PIN A0
+
+
 OneWire tempSensorOneWire(TEMP_SENSOR_PIN);
+
 DallasTemperature sensors(&tempSensorOneWire);
 
-#define BACKLIGHT_PIN  7
-#define EN_PIN  4
-#define RW_PIN  5
-#define RS_PIN  6
-#define D4_PIN  0
-#define D5_PIN  1
-#define D6_PIN  2
-#define D7_PIN  3
-LiquidCrystal_I2C lcd(0x20, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN);
+LiquidCrystal_I2C lcd(0x20, LCD_EN_PIN, LCD_RW_PIN, LCD_RS_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
 
+AnalogButtons analogButtons = AnalogButtons(BUTTONS_PIN, INPUT, 1, 150);
 
-//Bounce plusBouncer = Bounce();
-//Bounce minusBouncer = Bounce();
-//
-//boolean isRelayOn;
-//float targetTemp;
+boolean needRedrawScreen = true;
+long currentTempUpdatedAt;
+float currentTemp;
+float targetTemp = 40;
 
-
-//void saveTemp() ;
+void targetTempDecrement();
+void targetTempIncrement();
 
 void setup(void) {
 
     lcd.begin(16, 2);
-    lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
+    lcd.setBacklightPin(LCD_BACKLIGHT_PIN, POSITIVE);
     lcd.home();
     lcd.print("Hello, ARDUINO ");
     lcd.setCursor(0, 1);
@@ -50,7 +45,13 @@ void setup(void) {
 
     delay(1000);
 
+    lcd.home();
+    lcd.clear();
+
     sensors.begin();
+
+    analogButtons.add(Button(490, &targetTempDecrement));
+    analogButtons.add(Button(994, &targetTempIncrement));
 
 //  while (!EEPROM.isReady()) {
 //    delay(50);
@@ -63,67 +64,43 @@ void setup(void) {
 //    saveTemp();
 //  }
 
-//  pinMode(LED_OUT, OUTPUT);
-//  pinMode(RELAY_OUT, OUTPUT);
-//
-//  pinMode(PLUS_IN, INPUT);
-//  pinMode(MINUS_IN, INPUT);
-//
-//  digitalWrite(PLUS_IN, HIGH);
-//  digitalWrite(MINUS_IN, HIGH);
-//
-//  plusBouncer.attach(PLUS_IN);
-//  plusBouncer.interval(5);
-//
-//  minusBouncer.attach(MINUS_IN);
-//  minusBouncer.interval(5);
-
 }
 
 
 void loop(void) {
 
-    delay(500);
+    long currentMillis = millis();
+    if (currentMillis - currentTempUpdatedAt > 2000) {
+        sensors.requestTemperatures();
+        currentTemp = sensors.getTempCByIndex(0);
+        currentTempUpdatedAt = millis();
+        needRedrawScreen = true;
+    }
 
-    sensors.requestTemperatures();
-    float currentTemp = sensors.getTempCByIndex(0);
+    if (needRedrawScreen) {
 
-    lcd.home();
-    lcd.clear();
-    lcd.print(currentTemp);
+        lcd.setCursor(0, 0);
+        lcd.print(currentTemp);
 
-//
-//  if (currentTemp > targetTemp + 0.5) {
-//
-//    isRelayOn = false;
-//
-//  } else {
-//
-//    if (currentTemp < targetTemp) isRelayOn = true;
-//
-//  }
-//
-//  if (plusBouncer.update() && plusBouncer.read() == LOW) {
-//    targetTemp += 0.1;
-//    saveTemp();
-//  }
-//
-//  if (minusBouncer.update() && minusBouncer.read() == LOW) {
-//    targetTemp -= 0.1;
-//    saveTemp();
-//  }
-//
-//  digitalWrite(RELAY_OUT, isRelayOn ? HIGH : LOW);
-//  digitalWrite(LED_OUT, isRelayOn ? HIGH : LOW);
-//
-//  display.setCursor(0, 1);
-//  display.print(targetTemp);
-//
-//  display.setCursor(13, 0);
-//  display.print(isRelayOn ? "On " : "Off");
+        lcd.setCursor(0, 1);
+        lcd.print(targetTemp);
+
+        needRedrawScreen = false;
+    }
+
+    analogButtons.check();
 
 }
 
+void targetTempIncrement() {
+    targetTemp += 0.5;
+    needRedrawScreen = true;
+}
+
+void targetTempDecrement() {
+    targetTemp -= 0.5;
+    needRedrawScreen = true;
+}
 
 //void saveTemp() {
 //    EEPROM.updateFloat(TEMP_ADDR, targetTemp);

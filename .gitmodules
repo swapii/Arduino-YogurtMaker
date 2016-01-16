@@ -4,12 +4,12 @@
 [submodule "libs/EEPROMex"]
 	path = libs/EEPROMex
 	url = git@github.com:thijse/Arduino-EEPROMEx.git
-[submodule "libs/Bounce2"]
-	path = libs/Bounce2
-	url = git@github.com:thomasfredericks/Bounce2.git
 [submodule "libs/OneWire"]
 	path = libs/OneWire
 	url = git@github.com:PaulStoffregen/OneWire.git
 [submodule "libs/LiquidCrystal"]
 	path = libs/LiquidCrystal
 	url = git@github.com:swapii/ArduinoLib_NewLiquidCrystal.git
+[submodule "libs/AnalogButtons"]
+	path = libs/AnalogButtons
+	url = git@github.com:rlogiacco/AnalogButtons.git
