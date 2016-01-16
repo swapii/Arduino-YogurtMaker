@@ -2,64 +2,55 @@
 #include <DallasTemperature.h>
 #include <LiquidCrystal.h>
 #include <LiquidCrystal_I2C.h>
-#include <EEPROMex.h>
-#include <Bounce2.h>
+//#include <EEPROMex.h>
+//#include <Bounce2.h>
 
 
-#define TEMP_SENSOR 11
-#define RELAY_OUT 12
-#define LED_OUT 13
+//#define RELAY_OUT 12
+//#define LED_OUT 13
+//
+//#define PLUS_IN 3
+//#define MINUS_IN 2
 
-#define PLUS_IN 3
-#define MINUS_IN 2
 
+
+#define TEMP_SENSOR_PIN 7
 #define TEMP_ADDR 0
-
-
-OneWire tempWire(TEMP_SENSOR);
-
-DallasTemperature sensors(&tempWire);
+OneWire tempSensorOneWire(TEMP_SENSOR_PIN);
+DallasTemperature sensors(&tempSensorOneWire);
 
 #define BACKLIGHT_PIN  7
-#define En_pin  4
-#define Rw_pin  5
-#define Rs_pin  6
-#define D4_pin  0
-#define D5_pin  1
-#define D6_pin  2
-#define D7_pin  3
-LiquidCrystal_I2C lcd(0x20, En_pin, Rw_pin, Rs_pin, D4_pin, D5_pin, D6_pin, D7_pin);
+#define EN_PIN  4
+#define RW_PIN  5
+#define RS_PIN  6
+#define D4_PIN  0
+#define D5_PIN  1
+#define D6_PIN  2
+#define D7_PIN  3
+LiquidCrystal_I2C lcd(0x20, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN);
 
 
-Bounce plusBouncer = Bounce();
-Bounce minusBouncer = Bounce();
+//Bounce plusBouncer = Bounce();
+//Bounce minusBouncer = Bounce();
+//
+//boolean isRelayOn;
+//float targetTemp;
 
-boolean isRelayOn;
-float targetTemp;
 
-
-void saveTemp() ;
-
-int counter;
+//void saveTemp() ;
 
 void setup(void) {
 
-    // Switch on the backlight
-//    pinMode ( BACKLIGHT_PIN, OUTPUT );
-//    digitalWrite ( BACKLIGHT_PIN, HIGH );
-//
-//    lcd.setBacklightPin(BACKLIGHT_PIN,NEGATIVE);
-
     lcd.begin(16, 2);
-    lcd.home();                   // go home
+    lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
+    lcd.home();
     lcd.print("Hello, ARDUINO ");
-    lcd.setCursor ( 0, 1 );        // go to the next line
-    lcd.print (" WORLD!  ");
+    lcd.setCursor(0, 1);
+    lcd.print(" WORLD!  ");
 
     delay(1000);
-    lcd.setBacklight(0);
-    delay(1000);
-    lcd.setBacklight(1);
+
+    sensors.begin();
 
 //  while (!EEPROM.isReady()) {
 //    delay(50);
@@ -71,12 +62,7 @@ void setup(void) {
 //    targetTemp = 40;
 //    saveTemp();
 //  }
-//
-//  sensors.begin();
-//
-//  display.begin(16,2);
-//  display.clear();
-//
+
 //  pinMode(LED_OUT, OUTPUT);
 //  pinMode(RELAY_OUT, OUTPUT);
 //
@@ -97,19 +83,15 @@ void setup(void) {
 
 void loop(void) {
 
-    counter++;
+    delay(500);
 
-    delay(1000);
+    sensors.requestTemperatures();
+    float currentTemp = sensors.getTempCByIndex(0);
 
     lcd.home();
     lcd.clear();
-    lcd.print(counter);
+    lcd.print(currentTemp);
 
-//  sensors.setWaitForConversion(false);  // makes it async
-//  sensors.requestTemperatures();
-//  sensors.setWaitForConversion(true);
-//
-//  float currentTemp = sensors.getTempCByIndex(0);
 //
 //  if (currentTemp > targetTemp + 0.5) {
 //
@@ -131,14 +113,8 @@ void loop(void) {
 //    saveTemp();
 //  }
 //
-//
-//
 //  digitalWrite(RELAY_OUT, isRelayOn ? HIGH : LOW);
 //  digitalWrite(LED_OUT, isRelayOn ? HIGH : LOW);
-//
-//
-//  display.setCursor(0, 0);
-//  display.print(currentTemp);
 //
 //  display.setCursor(0, 1);
 //  display.print(targetTemp);
@@ -149,6 +125,6 @@ void loop(void) {
 }
 
 
-void saveTemp() {
-    EEPROM.updateFloat(TEMP_ADDR, targetTemp);
-}
+//void saveTemp() {
+//    EEPROM.updateFloat(TEMP_ADDR, targetTemp);
+//}
