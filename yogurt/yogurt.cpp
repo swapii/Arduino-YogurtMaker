@@ -23,12 +23,15 @@ enum State {
 };
 
 
-static const unsigned long REMAIN_TIME_CHANGE_STEP = 30l * 60l * 1000l;
+static const long REMAIN_TIME_MIN = 0l;
+static const long REMAIN_TIME_MAX = 9 * 60l * 60l * 1000l;
+static const long REMAIN_TIME_CHANGE_STEP = 30l * 60l * 1000l;
+
 static const int EEPROM_TARGET_TEMP_ADDR = 0;
 
-static const float TARGET_TEMP_DEFAULT = 40;
 static const float TARGET_TEMP_MIN = 0;
 static const float TARGET_TEMP_MAX = 75;
+static const float TARGET_TEMP_DEFAULT = 40;
 
 
 OneWire tempSensorOneWire(TEMP_SENSOR_PIN);
@@ -42,14 +45,15 @@ AnalogButtons analogButtons = AnalogButtons(BUTTONS_PIN, INPUT, 1, 50);
 
 bool needRedrawScreen;
 
-long currentTempUpdatedAt;
 float currentTemp;
+long currentTempUpdatedAt;
 
-long targetTempUpdatedAt;
 float targetTemp;
+long targetTempUpdatedAt;
 
-long remainTimeUpdatedAt;
 long remainTimeMillis;
+long remainTimeUpdatedAt;
+long remainTimeSavedAt;
 
 State state = READY;
 
@@ -159,6 +163,12 @@ void loop(void) {
 void updateRemainTime() {
     unsigned long currentMillis = millis();
     remainTimeMillis -= currentMillis - remainTimeUpdatedAt;
+
+    if (remainTimeMillis <= REMAIN_TIME_MIN) {
+        remainTimeMillis = REMAIN_TIME_MIN;
+        state = READY;
+    }
+
     remainTimeUpdatedAt = currentMillis;
     needRedrawScreen = true;
 }
@@ -184,10 +194,20 @@ void targetTempDecrement() {
 }
 
 void remainTimeDecrement() {
+
+    if (remainTimeMillis <= REMAIN_TIME_MIN) {
+        return;
+    }
+
     setRemainTime(remainTimeMillis - REMAIN_TIME_CHANGE_STEP);
 }
 
 void remainTimeIncrement() {
+
+    if (remainTimeMillis >= REMAIN_TIME_MAX) {
+        return;
+    }
+
     setRemainTime(remainTimeMillis + REMAIN_TIME_CHANGE_STEP);
 }
 
@@ -203,12 +223,32 @@ void start() {
 }
 
 void setTargetTemp(float newValue) {
+
     targetTemp = newValue;
+
+    if (targetTemp < TARGET_TEMP_MIN) {
+        targetTemp = TARGET_TEMP_MIN;
+    }
+
+    if (targetTemp > TARGET_TEMP_MAX) {
+        targetTemp = TARGET_TEMP_MAX;
+    }
+
     needRedrawScreen = true;
 }
 
 void setRemainTime(long newValue) {
+
     remainTimeMillis = newValue;
+
+    if (remainTimeMillis < REMAIN_TIME_MIN) {
+        remainTimeMillis = REMAIN_TIME_MIN;
+    }
+
+    if (remainTimeMillis > REMAIN_TIME_MAX) {
+        remainTimeMillis = REMAIN_TIME_MAX;
+    }
+
     needRedrawScreen = true;
 }
 
