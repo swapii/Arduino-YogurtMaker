@@ -33,17 +33,21 @@ LiquidCrystal_I2C lcd(0x20, LCD_EN_PIN, LCD_RW_PIN, LCD_RS_PIN, LCD_D4_PIN, LCD_
 
 AnalogButtons analogButtons = AnalogButtons(BUTTONS_PIN, INPUT, 1, 150);
 
+
 bool needRedrawScreen;
 
 long currentTempUpdatedAt;
 float currentTemp;
 
-bool needSaveTargetTemp;
+long targetTempUpdatedAt;
 float targetTemp;
+
 
 void saveTargetTemp();
 void targetTempDecrement();
 void targetTempIncrement();
+void setTargetTemp(float newValue);
+
 
 void setup(void) {
 
@@ -68,20 +72,23 @@ void setup(void) {
     targetTemp = EEPROM.readFloat(EEPROM_TARGET_TEMP_ADDR);
 
     if (isnan(targetTemp) || targetTemp < TARGET_TEMP_MIN || targetTemp > TARGET_TEMP_MAX) {
-        targetTemp = TARGET_TEMP_DEFAULT;
-        needSaveTargetTemp;
+        setTargetTemp(TARGET_TEMP_DEFAULT);
     }
 
     int targetTempModulus = int(targetTemp * 10) % 5;
     if (targetTempModulus != 0) {
-        targetTemp = TARGET_TEMP_DEFAULT;
-        needSaveTargetTemp;
+        setTargetTemp(TARGET_TEMP_DEFAULT);
     }
 
     lcd.clear();
 
 }
 
+void setTargetTemp(float newValue) {
+    targetTemp = newValue;
+    targetTempUpdatedAt = millis();
+    needRedrawScreen = true;
+}
 
 void loop(void) {
 
@@ -104,9 +111,9 @@ void loop(void) {
         needRedrawScreen = false;
     }
 
-    if (needSaveTargetTemp) {
+    if (targetTempUpdatedAt > 0 && currentMillis - targetTempUpdatedAt > 5000) {
         saveTargetTemp();
-        needSaveTargetTemp = false;
+        targetTempUpdatedAt = 0;
     }
 
     analogButtons.check();
@@ -119,9 +126,7 @@ void targetTempIncrement() {
         return;
     }
 
-    targetTemp += 0.5;
-    needSaveTargetTemp = true;
-    needRedrawScreen = true;
+    setTargetTemp(targetTemp + 0.5);
 
 }
 
@@ -131,9 +136,7 @@ void targetTempDecrement() {
         return;
     }
 
-    targetTemp -= 0.5;
-    needSaveTargetTemp = true;
-    needRedrawScreen = true;
+    setTargetTemp(targetTemp - 0.5);
 
 }
 
