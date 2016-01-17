@@ -31,7 +31,7 @@ DallasTemperature sensors(&tempSensorOneWire);
 
 LiquidCrystal_I2C lcd(0x20, LCD_EN_PIN, LCD_RW_PIN, LCD_RS_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
 
-AnalogButtons analogButtons = AnalogButtons(BUTTONS_PIN, INPUT, 1, 150);
+AnalogButtons analogButtons = AnalogButtons(BUTTONS_PIN, INPUT, 1, 50);
 
 
 bool needRedrawScreen;
@@ -42,11 +42,23 @@ float currentTemp;
 long targetTempUpdatedAt;
 float targetTemp;
 
+long remainTimeUpdatedAt;
+int remainTimeSeconds;
+
 
 void saveTargetTemp();
+void setTargetTemp(float newValue);
+void setRemainTime(int newValue);
+String remainTimeFormatted();
+
 void targetTempDecrement();
 void targetTempIncrement();
-void setTargetTemp(float newValue);
+
+void remainTimeDecrement();
+void remainTimeIncrement();
+
+void start();
+void stop();
 
 
 void setup(void) {
@@ -62,8 +74,14 @@ void setup(void) {
 
     sensors.begin();
 
-    analogButtons.add(Button(490, &targetTempDecrement));
-    analogButtons.add(Button(994, &targetTempIncrement));
+    analogButtons.add(Button(170, &targetTempDecrement));
+    analogButtons.add(Button(340, &targetTempIncrement));
+
+    analogButtons.add(Button(500, &remainTimeDecrement));
+    analogButtons.add(Button(670, &remainTimeIncrement));
+
+    analogButtons.add(Button(835, &start));
+    analogButtons.add(Button(1010, &stop));
 
     while (!EEPROM.isReady()) {
         delay(10);
@@ -84,20 +102,19 @@ void setup(void) {
 
 }
 
-void setTargetTemp(float newValue) {
-    targetTemp = newValue;
-    targetTempUpdatedAt = millis();
-    needRedrawScreen = true;
-}
-
 void loop(void) {
 
     long currentMillis = millis();
+
     if (currentMillis - currentTempUpdatedAt > 2000) {
         sensors.requestTemperatures();
         currentTemp = sensors.getTempCByIndex(0);
         currentTempUpdatedAt = millis();
         needRedrawScreen = true;
+    }
+
+    if (currentMillis - remainTimeUpdatedAt > 1000 * 30) {
+        //TODO Save remain time to EEPROM
     }
 
     if (needRedrawScreen) {
@@ -107,6 +124,9 @@ void loop(void) {
 
         lcd.setCursor(0, 1);
         lcd.print(targetTemp, 1);
+
+        lcd.setCursor(6, 1);
+        lcd.print(remainTimeFormatted());
 
         needRedrawScreen = false;
     }
@@ -138,6 +158,45 @@ void targetTempDecrement() {
 
     setTargetTemp(targetTemp - 0.5);
 
+}
+
+void remainTimeDecrement() {
+    setRemainTime(remainTimeSeconds - 60 * 30);
+}
+
+void remainTimeIncrement() {
+    setRemainTime(remainTimeSeconds + 60 * 30);
+}
+
+void start() {
+    //TODO
+}
+
+void stop() {
+    //TODO
+}
+
+void setTargetTemp(float newValue) {
+    targetTemp = newValue;
+    targetTempUpdatedAt = millis();
+    needRedrawScreen = true;
+}
+
+void setRemainTime(int newValue) {
+    remainTimeSeconds = newValue;
+    remainTimeUpdatedAt = millis();
+    needRedrawScreen = true;
+}
+
+String remainTimeFormatted() {
+
+    int hours = remainTimeSeconds / 60 / 60;
+    int minutes = remainTimeSeconds / 60 - hours * 60;
+
+    char resultString[5];
+    sprintf(resultString, "%d:%02d", hours, minutes);
+
+    return String(resultString);
 }
 
 void saveTargetTemp() {
