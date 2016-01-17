@@ -23,6 +23,7 @@ enum State {
 };
 
 
+static const unsigned long REMAIN_TIME_CHANGE_STEP = 30l * 60l * 1000l;
 static const int EEPROM_TARGET_TEMP_ADDR = 0;
 
 static const float TARGET_TEMP_DEFAULT = 40;
@@ -48,14 +49,16 @@ long targetTempUpdatedAt;
 float targetTemp;
 
 long remainTimeUpdatedAt;
-int remainTimeSeconds;
+long remainTimeMillis;
 
 State state = READY;
 
 
 void saveTargetTemp();
 void setTargetTemp(float newValue);
-void setRemainTime(int newValue);
+
+void setRemainTime(long newValue);
+void updateRemainTime();
 String remainTimeFormatted();
 
 void targetTempDecrement();
@@ -116,17 +119,18 @@ void loop(void) {
     if (currentMillis - currentTempUpdatedAt > 2000) {
         sensors.requestTemperatures();
         currentTemp = sensors.getTempCByIndex(0);
-        currentTempUpdatedAt = millis();
+        currentTempUpdatedAt = currentMillis;
         needRedrawScreen = true;
     }
 
-    if (currentMillis - remainTimeUpdatedAt > 1000 * 30) {
-        //TODO Save remain time to EEPROM
+    if (state == WORK) {
+        if (currentMillis - remainTimeUpdatedAt > 1000) {
+            //TODO Save remain time to EEPROM
+            updateRemainTime();
+        }
     }
 
     if (needRedrawScreen) {
-
-        lcd.clear();
 
         lcd.setCursor(0, 0);
         lcd.print(currentTemp, 1);
@@ -152,6 +156,13 @@ void loop(void) {
 
 }
 
+void updateRemainTime() {
+    unsigned long currentMillis = millis();
+    remainTimeMillis -= currentMillis - remainTimeUpdatedAt;
+    remainTimeUpdatedAt = currentMillis;
+    needRedrawScreen = true;
+}
+
 void targetTempIncrement() {
 
     if (targetTemp >= TARGET_TEMP_MAX) {
@@ -173,40 +184,40 @@ void targetTempDecrement() {
 }
 
 void remainTimeDecrement() {
-    setRemainTime(remainTimeSeconds - 60 * 30);
+    setRemainTime(remainTimeMillis - REMAIN_TIME_CHANGE_STEP);
 }
 
 void remainTimeIncrement() {
-    setRemainTime(remainTimeSeconds + 60 * 30);
+    setRemainTime(remainTimeMillis + REMAIN_TIME_CHANGE_STEP);
 }
 
 void stop() {
     state = READY;
-    needRedrawScreen = true;
+    updateRemainTime();
 }
 
 void start() {
     state = WORK;
-    needRedrawScreen = true;
+    remainTimeUpdatedAt = millis();
+    updateRemainTime();
 }
 
 void setTargetTemp(float newValue) {
     targetTemp = newValue;
-    targetTempUpdatedAt = millis();
     needRedrawScreen = true;
 }
 
-void setRemainTime(int newValue) {
-    remainTimeSeconds = newValue;
-    remainTimeUpdatedAt = millis();
+void setRemainTime(long newValue) {
+    remainTimeMillis = newValue;
     needRedrawScreen = true;
 }
 
 String remainTimeFormatted() {
 
-    int hours = remainTimeSeconds / 60 / 60;
-    int minutes = remainTimeSeconds / 60 - hours * 60;
-    int seconds = remainTimeSeconds - hours * 60 * 60 - minutes * 60;
+    unsigned long remainTimeSeconds = (unsigned long) (remainTimeMillis / 1000);
+    int hours = (int) (remainTimeSeconds / 60 / 60);
+    int minutes = (int) (remainTimeSeconds / 60 - hours * 60);
+    int seconds = (int) (remainTimeSeconds - hours * 60 * 60 - minutes * 60);
 
     char resultString[8];
     sprintf(resultString, "%d:%02d:%02d", hours, minutes, seconds);
