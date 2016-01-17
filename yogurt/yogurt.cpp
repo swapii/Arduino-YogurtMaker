@@ -18,6 +18,11 @@
 #define BUTTONS_PIN A0
 
 
+enum State {
+    READY, WORK
+};
+
+
 static const int EEPROM_TARGET_TEMP_ADDR = 0;
 
 static const float TARGET_TEMP_DEFAULT = 40;
@@ -44,6 +49,8 @@ float targetTemp;
 
 long remainTimeUpdatedAt;
 int remainTimeSeconds;
+
+State state = READY;
 
 
 void saveTargetTemp();
@@ -80,8 +87,8 @@ void setup(void) {
     analogButtons.add(Button(500, &remainTimeDecrement));
     analogButtons.add(Button(670, &remainTimeIncrement));
 
-    analogButtons.add(Button(835, &start));
-    analogButtons.add(Button(1010, &stop));
+    analogButtons.add(Button(835, &stop));
+    analogButtons.add(Button(1010, &start));
 
     while (!EEPROM.isReady()) {
         delay(10);
@@ -119,14 +126,19 @@ void loop(void) {
 
     if (needRedrawScreen) {
 
+        lcd.clear();
+
         lcd.setCursor(0, 0);
         lcd.print(currentTemp, 1);
 
         lcd.setCursor(0, 1);
         lcd.print(targetTemp, 1);
 
-        lcd.setCursor(6, 1);
+        lcd.setCursor(9, 1);
         lcd.print(remainTimeFormatted());
+
+        lcd.setCursor(11, 0);
+        lcd.print(state == READY ? "Ready" : " Work");
 
         needRedrawScreen = false;
     }
@@ -168,12 +180,14 @@ void remainTimeIncrement() {
     setRemainTime(remainTimeSeconds + 60 * 30);
 }
 
-void start() {
-    //TODO
+void stop() {
+    state = READY;
+    needRedrawScreen = true;
 }
 
-void stop() {
-    //TODO
+void start() {
+    state = WORK;
+    needRedrawScreen = true;
 }
 
 void setTargetTemp(float newValue) {
@@ -192,9 +206,10 @@ String remainTimeFormatted() {
 
     int hours = remainTimeSeconds / 60 / 60;
     int minutes = remainTimeSeconds / 60 - hours * 60;
+    int seconds = remainTimeSeconds - hours * 60 * 60 - minutes * 60;
 
-    char resultString[5];
-    sprintf(resultString, "%d:%02d", hours, minutes);
+    char resultString[8];
+    sprintf(resultString, "%d:%02d:%02d", hours, minutes, seconds);
 
     return String(resultString);
 }
